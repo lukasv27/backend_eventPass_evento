@@ -32,10 +32,10 @@ public class EventoController {
     }
 
     // GET - Buscar evento por ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Evento> buscarEventoPorId(@PathVariable Long id) {
+    @GetMapping("/{eventoId}")
+    public ResponseEntity<Evento> buscarEventoPorId(@PathVariable Long eventoId) {
 
-        return eventoService.buscarEventoPorId(id)
+        return eventoService.buscarEventoPorId(eventoId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -50,22 +50,22 @@ public class EventoController {
     }
 
     // PUT - Actualizar evento
-    @PutMapping("/{id}")
+    @PutMapping("/{eventoId}")
     public ResponseEntity<Evento> actualizarEvento(
-            @PathVariable Long id,
+            @PathVariable Long eventoId,
             @RequestBody Evento evento) {
 
         Evento eventoActualizado =
-                eventoService.actualizarEvento(id, evento);
+                eventoService.actualizarEvento(eventoId, evento);
 
         return ResponseEntity.ok(eventoActualizado);
     }
 
     // DELETE - Eliminar evento
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarEvento(@PathVariable Long id) {
+    @DeleteMapping("/{eventoId}")
+    public ResponseEntity<Void> eliminarEvento(@PathVariable Long eventoId) {
 
-        eventoService.eliminarEvento(id);
+        eventoService.eliminarEvento(eventoId);
 
         return ResponseEntity.noContent().build();
     }

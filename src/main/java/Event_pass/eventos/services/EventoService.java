@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 import Event_pass.eventos.model.Evento;
 import Event_pass.eventos.repository.EventoRepository;
 
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 @Service
 public class EventoService {
 
@@ -23,8 +27,8 @@ public class EventoService {
     }
 
     // Buscar evento por ID
-    public Optional<Evento> buscarEventoPorId(Long id) {
-        return eventoRepository.findById(id);
+    public Optional<Evento> buscarEventoPorId(Long eventoId) {
+        return eventoRepository.findById(eventoId);
     }
 
     // Crear evento
@@ -33,10 +37,10 @@ public class EventoService {
     }
 
     // Actualizar evento
-    public Evento actualizarEvento(Long id, Evento eventoActualizado) {
+    public Evento actualizarEvento(Long eventoId, Evento eventoActualizado) {
 
-        Evento evento = eventoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Evento no encontrado"));
+        Evento evento = eventoRepository.findById(eventoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado"));
 
         evento.setNombre(eventoActualizado.getNombre());
         evento.setFecha(eventoActualizado.getFecha());
@@ -48,28 +52,32 @@ public class EventoService {
     }
 
     // Eliminar evento
-    public void eliminarEvento(Long id) {
-        eventoRepository.deleteById(id);
+    public void eliminarEvento(Long eventoId) {
+        eventoRepository.deleteById(eventoId);
     }
 
     // Reservar cupos
+    @Transactional 
     public Evento reservarCupos(Long eventoId, Long cantidad) {
 
-        Evento evento = eventoRepository.findById(eventoId)
-                .orElseThrow(() -> new RuntimeException("Evento no encontrado"));
+         Evento evento = eventoRepository.buscarParaReserva(eventoId)
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.NOT_FOUND,
+            "Evento no encontrado"
+        ));
 
-        if (cantidad <= 0) {
-            throw new RuntimeException("La cantidad debe ser mayor a 0");
-        }
-
-        if (evento.getCupoDisponible() < cantidad) {
-            throw new RuntimeException("No hay cupos suficientes");
-        }
-
-        evento.setCupoDisponible(
-                evento.getCupoDisponible() - cantidad
+    if (evento.getCupoDisponible() == null ||
+        evento.getCupoDisponible() < cantidad) {
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "No hay cupos suficientes"
         );
-
-        return eventoRepository.save(evento);
     }
+
+    evento.setCupoDisponible(
+        evento.getCupoDisponible() - cantidad
+    );
+
+    return eventoRepository.save(evento);
+}
 }
