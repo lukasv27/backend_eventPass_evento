@@ -1,7 +1,6 @@
 
 package Event_pass.eventos.controller;
 
-import Event_pass.eventos.model.Evento;
 import Event_pass.eventos.model.Reserva;
 import Event_pass.eventos.services.EventoService;
 
@@ -23,19 +22,6 @@ public class ReservaController {
             @PathVariable Long eventoId,
             @RequestBody Reserva reserva) {
 
-        if (reserva.getOrdenId() == null ||
-            reserva.getOrdenId() <= 0) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        Evento evento = eventoService.reservarCupos(
-            eventoId,
-            reserva.getCantidad()
-        );
-
-        reserva.setEventoId(evento.getEventoId());
-        reserva.setResultado("RESERVADA");
-
-        return ResponseEntity.ok(reserva);
+        return ResponseEntity.ok(eventoService.reservarCupos(eventoId, reserva));
     }
 }

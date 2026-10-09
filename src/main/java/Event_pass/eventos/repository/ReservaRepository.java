@@ -7,13 +7,12 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import Event_pass.eventos.model.Reserva;
 import jakarta.persistence.LockModeType;
-import Event_pass.eventos.model.Evento;
 
-public interface EventoRepository extends JpaRepository<Evento, Long> {
+public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
-    // Serializa las reservas de un mismo evento para evitar sobreventa.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT e FROM Evento e WHERE e.id = :eventoId")
-    Optional<Evento> buscarParaReserva(@Param("eventoId") Long eventoId);
+    @Query("SELECT r FROM Reserva r WHERE r.ordenId = :ordenId")
+    Optional<Reserva> buscarParaActualizar(@Param("ordenId") Long ordenId);
 }
