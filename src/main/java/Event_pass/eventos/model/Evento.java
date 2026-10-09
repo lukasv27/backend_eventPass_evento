@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 public class Evento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long eventoId;
+    private Long id;
     private String nombre;
     private String fecha;
     private String lugar;
@@ -20,8 +20,8 @@ public class Evento {
     public Evento() {
     }
 
-    public Evento(Long eventoId, String nombre, String fecha, String lugar) {
-        this.eventoId = eventoId;
+    public Evento(Long id, String nombre, String fecha, String lugar) {
+        this.id = id;
         this.nombre = nombre;
         this.fecha = fecha;
         this.lugar = lugar;
@@ -30,12 +30,12 @@ public class Evento {
     }
 
     // Getters and Setters
-    public Long getEventoId() {
-        return eventoId;
+    public Long getId() {
+        return id;
     }
 
-    public void setEventoId(Long eventoId) {
-        this.eventoId = eventoId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getNombre() {

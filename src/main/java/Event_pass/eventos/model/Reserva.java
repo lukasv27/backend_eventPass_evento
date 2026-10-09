@@ -1,11 +1,26 @@
 
 package Event_pass.eventos.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "reservas_evento")
 public class Reserva {
 
-    private Long eventoId;
+    @Id
+    @Column(name = "orden_id", nullable = false)
     private Long ordenId;
+
+    @Column(name = "evento_id", nullable = false)
+    private Long eventoId;
+
+    @Column(nullable = false)
     private Long cantidad;
+
+    @Column(nullable = false)
     private String resultado;
 
     public Reserva() {
