@@ -6,15 +6,23 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import Event_pass.eventos.model.Evento;
+import Event_pass.eventos.model.Reserva;
 import Event_pass.eventos.repository.EventoRepository;
+import Event_pass.eventos.repository.ReservaRepository;
+
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class EventoService {
 
     private final EventoRepository eventoRepository;
+    private final ReservaRepository reservaRepository;
 
-    public EventoService(EventoRepository eventoRepository) {
+    public EventoService(EventoRepository eventoRepository, ReservaRepository reservaRepository) {
         this.eventoRepository = eventoRepository;
+        this.reservaRepository = reservaRepository;
     }
 
     // Listar todos los eventos
@@ -23,8 +31,8 @@ public class EventoService {
     }
 
     // Buscar evento por ID
-    public Optional<Evento> buscarEventoPorId(Long id) {
-        return eventoRepository.findById(id);
+    public Optional<Evento> buscarEventoPorId(Long eventoId) {
+        return eventoRepository.findById(eventoId);
     }
 
     // Crear evento
@@ -33,10 +41,10 @@ public class EventoService {
     }
 
     // Actualizar evento
-    public Evento actualizarEvento(Long id, Evento eventoActualizado) {
+    public Evento actualizarEvento(Long eventoId, Evento eventoActualizado) {
 
-        Evento evento = eventoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Evento no encontrado"));
+        Evento evento = eventoRepository.findById(eventoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado"));
 
         evento.setNombre(eventoActualizado.getNombre());
         evento.setFecha(eventoActualizado.getFecha());
@@ -48,28 +56,63 @@ public class EventoService {
     }
 
     // Eliminar evento
-    public void eliminarEvento(Long id) {
-        eventoRepository.deleteById(id);
+    public void eliminarEvento(Long eventoId) {
+        eventoRepository.deleteById(eventoId);
     }
 
     // Reservar cupos
-    public Evento reservarCupos(Long eventoId, Long cantidad) {
-
-        Evento evento = eventoRepository.findById(eventoId)
-                .orElseThrow(() -> new RuntimeException("Evento no encontrado"));
-
-        if (cantidad <= 0) {
-            throw new RuntimeException("La cantidad debe ser mayor a 0");
+    @Transactional
+    public Reserva reservarCupos(Long eventoId, Reserva solicitud) {
+        if (eventoId == null || eventoId <= 0
+                || solicitud == null
+                || solicitud.getOrdenId() == null || solicitud.getOrdenId() <= 0
+                || solicitud.getCantidad() == null || solicitud.getCantidad() <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "eventoId, ordenId y cantidad deben ser valores positivos"
+            );
         }
 
-        if (evento.getCupoDisponible() < cantidad) {
-            throw new RuntimeException("No hay cupos suficientes");
+        Reserva existente = reservaRepository.findById(solicitud.getOrdenId()).orElse(null);
+        if (existente != null) {
+            return validarReservaRepetida(existente, eventoId, solicitud.getCantidad());
         }
 
-        evento.setCupoDisponible(
-                evento.getCupoDisponible() - cantidad
-        );
+        Evento evento = eventoRepository.buscarParaReserva(eventoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Evento no encontrado"
+                ));
 
-        return eventoRepository.save(evento);
+        // Releer bajo bloqueo por si otra solicitud con el mismo ordenId terminó
+        // mientras esta esperaba el bloqueo del evento.
+        existente = reservaRepository.buscarParaActualizar(solicitud.getOrdenId()).orElse(null);
+        if (existente != null) {
+            return validarReservaRepetida(existente, eventoId, solicitud.getCantidad());
+        }
+
+        if (evento.getCupoDisponible() == null || evento.getCupoDisponible() < solicitud.getCantidad()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No hay cupos suficientes");
+        }
+
+        evento.setCupoDisponible(evento.getCupoDisponible() - solicitud.getCantidad());
+        eventoRepository.save(evento);
+
+        Reserva reserva = new Reserva();
+        reserva.setOrdenId(solicitud.getOrdenId());
+        reserva.setEventoId(eventoId);
+        reserva.setCantidad(solicitud.getCantidad());
+        reserva.setResultado("RESERVADA");
+        return reservaRepository.save(reserva);
+    }
+
+    private Reserva validarReservaRepetida(Reserva existente, Long eventoId, Long cantidad) {
+        if (!existente.getEventoId().equals(eventoId) || !existente.getCantidad().equals(cantidad)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El orden ya tiene una reserva con datos diferentes"
+            );
+        }
+        return existente;
     }
 }
