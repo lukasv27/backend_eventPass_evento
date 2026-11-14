@@ -2,7 +2,7 @@ name: Pipeline CI/CD Completo - EventPass Java 17
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   ci-build-and-test:
