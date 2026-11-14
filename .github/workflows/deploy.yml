@@ -9,6 +9,20 @@ jobs:
     name: 1. Integracion Continua (Build, Test & Artifact)
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: BDeventos
+        ports:
+          - 3308:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Descargar codigo del repositorio
         uses: actions/checkout@v4
@@ -22,6 +36,10 @@ jobs:
 
       - name: Ejecutar pruebas unitarias (JUnit)
         run: mvn test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3308/BDeventos
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root
 
       - name: Empaquetar aplicacion (.jar)
         run: mvn package -DskipTests
