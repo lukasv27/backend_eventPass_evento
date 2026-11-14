@@ -1,42 +1,34 @@
-name: Pipeline CI/CD - EventPass Java 17
+name: Pipeline CI/CD Completo - EventPass Java 17
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
-  deploy:
+  ci-build-and-test:
+    name: 1. Integracion Continua (Build, Test & Artifact)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar codigo de EventPass
+      - name: Descargar codigo del repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17
+      - name: Configurar Java 17 (Amazon Corretto)
         uses: actions/setup-java@v4
         with:
           distribution: "corretto"
           java-version: "17"
           cache: "maven"
 
-      - name: Compilar EventPass con Maven
-        run: mvn clean package -DskipTests
+      - name: Ejecutar pruebas unitarias (JUnit)
+        run: mvn test
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - name: Empaquetar aplicacion (.jar)
+        run: mvn package -DskipTests
+
+      - name: Guardar artefacto compilado en GitHub
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "20.x"
-
-      - name: Instalar Serverless Framework
-        run: npm install -g serverless@3.38.0
-
-      - name: Configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Desplegar EventPass en AWS
-        run: serverless deploy --stage dev
+          name: eventpass-jar
+          path: target/*.jar
+          if-no-files-found: error
