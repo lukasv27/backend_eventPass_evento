@@ -3,6 +3,7 @@ name: Pipeline CI/CD Completo - EventPass Java 17
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   ci-build-and-test:
@@ -48,5 +49,39 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: eventpass-jar
-          path: target/*.jar
+          path: target/eventos-0.0.1-SNAPSHOT.jar
           if-no-files-found: error
+
+  deploy-aws:
+    name: 2. Despliegue a AWS Lambda
+    needs: ci-build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo del repositorio
+        uses: actions/checkout@v4
+
+      - name: Descargar JAR compilado
+        uses: actions/download-artifact@v4
+        with:
+          name: eventpass-jar
+          path: target
+
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar Serverless Framework
+        run: npm install -g serverless@3.38.0
+
+      - name: Desplegar EventPass en AWS Lambda
+        run: serverless deploy --stage dev
